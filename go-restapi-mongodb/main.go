@@ -45,22 +45,32 @@ func createUserHandler(w http.ResponseWriter, r *http.Request) {
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	params := r.URL.Query()
-	id, err := primitive.ObjectIDFromHex(params.Get("id"))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid user ID"})
-		return
-	}
 	collection := client.Database("test").Collection("users")
-	var user User
-	err = collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
+	cursor, err := collection.Find(context.Background(), bson.M{})
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "User not found"})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to fetch users"})
 		return
 	}
-	json.NewEncoder(w).Encode(user)
+	defer cursor.Close(context.Background())
+
+	var users []User
+	for cursor.Next(context.Background()) {
+		var user User
+		if err := cursor.Decode(&user); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to decode user"})
+			return
+		}
+		users = append(users, user)
+	}
+	if err := cursor.Err(); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to fetch users"})
+		return
+	}
+
+	json.NewEncoder(w).Encode(users)
 }
 
 func main() {
