@@ -99,13 +99,16 @@ func main() {
 			}},
 	)
 
+	fmt.Println(moives)
+
 	router := mux.NewRouter()
 	router.HandleFunc("/moives", getMovies).Methods("GET")
 	router.HandleFunc("/moives/{id}", getMovie).Methods("GET")
 	router.HandleFunc("/moives", createMoive).Methods("POST")
 	router.HandleFunc("/moives/{id}", updateMoive).Methods("PUT")
 	router.HandleFunc("/moives/{id}", deleteMoive).Methods("DELETE")
-
-	fmt.Println("Server up and running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server up and Running on ")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
+	}
 }
